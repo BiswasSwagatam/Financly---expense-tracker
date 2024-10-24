@@ -2,8 +2,10 @@ import React, { useState } from 'react'
 import Input from './Input'
 import { toast } from 'react-toastify'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../firebase'
+import { auth, db, provider } from '../firebase'
 import { useNavigate } from 'react-router-dom';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 function SignupSignin() {
 
@@ -14,6 +16,7 @@ function SignupSignin() {
   const [loading,setLoading] = useState(false)
   const [loginForm, setLoginForm] = useState(false)
   const navigate = useNavigate()
+  
 
 
   function signupWithEmail(e) {
@@ -36,6 +39,7 @@ function SignupSignin() {
       .then((userCredential) => {
         // Signed up 
         const user = userCredential.user;
+        console.log(user)
         toast.success("Account created successfully")
         setConfirmPassword("")
         setPassword("")
@@ -57,19 +61,49 @@ function SignupSignin() {
 
   }
 
-  function signupWithGoogle(e) {
+  function googleAuth(e) {
+    setLoading(true)
     e.preventDefault()
-  }
-
-
-  function createDoc(user) {
-
+    try {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          // This gives you a Google Access Token. You can use it to access the Google API.
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          const token = credential.accessToken;
+          // The signed-in user info.
+          const user = result.user;
+          console.log(user)
+          toast.success("User Authenticated successfully")
+          createDoc(user)
+          setLoading(false)
+          navigate("/dashboard")
+          // IdP data available using getAdditionalUserInfo(result)
+          // ...
+        }).catch((error) => {
+          // Handle Errors here.
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          // The email of the user's account used.
+          const email = error.customData.email;
+          // The AuthCredential type that was used.
+          const credential = GoogleAuthProvider.credentialFromError(error);
+          toast.error(errorMessage)
+          setLoading(false)
+          // ...
+        });
+    } catch (error) {
+      toast.error(error.message)
+      setLoading(false)
+    }
+    
   }
 
   function loginWithEmail(e) {
+    setLoading(true)
     e.preventDefault()
     if(!email || !password) {
       toast.error("Please fill all the fields")
+      setLoading(false)
     } else {
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
@@ -78,20 +112,46 @@ function SignupSignin() {
           toast.success("Logged in successfully")
           setEmail("")
           setPassword("")
+          setLoading(false)
           navigate("/dashboard")
           // ...
         })
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
+          setLoading(false)
           toast.error(errorMessage)
         });
     }
   }
 
-  function loginWithGoogle(e) {
-    e.preventDefault()
+
+  async function createDoc(user) {
+    setLoading(true)
+    if(!user) return
+
+    const userRef = doc(db, "users", user.uid)
+    const userData = await getDoc(userRef)
+    if(!userData.exists()) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          name: user.displayName ? user.displayName : name,
+          email: user.email,
+          photo: user.photoURL ? user.photoURL : "",
+          createdAt: new Date(),
+        })
+        console.log("User doc created")
+        setLoading(false)
+      } catch (error) {
+        toast.error(error.message)
+        setLoading(false)
+      }
+    } else {
+      console.log("User doc already exists")
+      setLoading(false)
+    }
   }
+
 
 
   return (
@@ -116,11 +176,11 @@ function SignupSignin() {
           type={"password"} 
         />
         <button disabled={loading} onClick={loginWithEmail} className='mx-auto border-2 border-indigo-600 rounded-lg bg-white  text-indigo-600 hover:bg-indigo-600 hover:text-white mt-5 p-2'>
-          {loading ? "Signing up..." : "Log In with email"}
+          {loading ? "Logging in..." : "Log In with email"}
         </button>
         <p className='text-center'>or</p>
-        <button disabled={loading} onClick={loginWithGoogle} className='mx-auto border-2 border-indigo-600 rounded-lg bg-indigo-600  text-white hover:bg-white hover:text-indigo-600 mb-5 p-2'>
-        {loading ? "Signing up..." : "Log in with Google"}
+        <button disabled={loading} onClick={googleAuth} className='mx-auto border-2 border-indigo-600 rounded-lg bg-indigo-600  text-white hover:bg-white hover:text-indigo-600 mb-5 p-2'>
+        {loading ? "Logging in..." : "Log in with Google"}
         </button>
       </form>
       <p>Don't have an account? <span onClick={() => setLoginForm(false)} className='text-indigo-600 cursor-pointer'>Sign Up</span></p>
@@ -161,7 +221,7 @@ function SignupSignin() {
             {loading ? "Signing up..." : "Sign Up with email"}
           </button>
           <p className='text-center'>or</p>
-          <button disabled={loading} onClick={signupWithGoogle} className='mx-auto border-2 border-indigo-600 rounded-lg bg-indigo-600  text-white hover:bg-white hover:text-indigo-600 mb-5 p-2'>
+          <button disabled={loading} onClick={googleAuth} className='mx-auto border-2 border-indigo-600 rounded-lg bg-indigo-600  text-white hover:bg-white hover:text-indigo-600 mb-5 p-2'>
           {loading ? "Signing up..." : "Sign Up with Google"}
           </button>
         </form>
