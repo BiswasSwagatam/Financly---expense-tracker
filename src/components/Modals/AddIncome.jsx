@@ -64,7 +64,7 @@ function AddIncomeModal({
             { required: true, message: "Please select the income date!" },
           ]}
         >
-          <DatePicker format="YYYY-MM-DD" className="font-outfit" />
+          <DatePicker className="font-outfit" format="DD/MM/YYYY"/>
         </Form.Item>
         <Form.Item
           style={{ fontWeight: 600, fontFamily: "Outfit" }}

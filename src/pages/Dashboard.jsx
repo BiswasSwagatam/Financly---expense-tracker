@@ -8,6 +8,9 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
 import { toast } from 'react-toastify';
 import moment from 'moment';
+import TransactionsTable from '../components/TransactionsTable';
+import Charts from '../components/Charts';
+import NoTransactions from '../components/NoTransactions';
 
 
 function Dashboard() {
@@ -40,7 +43,7 @@ function Dashboard() {
   const onFinish = (values, type) => {
     const newTransaction = {
       type,
-      date: moment(values.date).format("DD-MM-YYYY"),
+      date: values.date.format("DD/MM/YYYY"),
       name: values.name,
       amount: parseFloat(values.amount),
       tag: values.tag
@@ -48,14 +51,14 @@ function Dashboard() {
     addTransaction(newTransaction)
   }
 
-  async function addTransaction(transaction) {
+  async function addTransaction(transaction, many) {
     try {
       const docRef = await addDoc(
         collection(db, `users/${user.uid}/transactions`),
         transaction
       )
       console.log("Document written with ID: ", docRef.id);
-      toast.success("Transaction added successfully")
+      if(!many) toast.success("Transaction added successfully")
       let newArr = transactions
       newArr.push(transaction)
       setTransactions(newArr)
@@ -72,7 +75,7 @@ function Dashboard() {
 
   useEffect(() => {
     getTransactions()
-  }, [])
+  }, [user])
 
   async function getTransactions() {
     setLoading(true)
@@ -109,10 +112,14 @@ function Dashboard() {
     setBalance(totalIncome - totalExpense)
   }
 
+  let sortedTransactions = transactions.sort((a, b) => {
+    return new Date(b.date) - new Date(a.date)
+  })
 
   return (
-    <div>
+    <div className='overflow-x-none'>
       <Header />
+      
       {loading? 
       (<p>Loading...</p>)
       :
@@ -134,6 +141,8 @@ function Dashboard() {
           handleExpenseCancel={handleExpenseCancel}
           onFinish={onFinish}
         />
+        {transactions && transactions.length != 0 ? <Charts sortedTransactions={sortedTransactions}/> : <NoTransactions/>}
+        <TransactionsTable transactions={transactions} addTransaction={addTransaction} getTransactions={getTransactions} />
       </>
       )}
     </div>

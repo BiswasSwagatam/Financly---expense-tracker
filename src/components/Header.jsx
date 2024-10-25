@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { signOut } from 'firebase/auth';
 
+
 function Header() {
 
   const [user, loading] = useAuthState(auth);
@@ -33,13 +34,16 @@ function Header() {
 
 
   return (
-    <div className='flex justify-between px-5 py-3 m-0 bg-indigo-600 text-white'>
+    <div className='z-100 flex justify-between px-5 py-3 m-0 bg-indigo-600 text-white'>
       <div className='flex items-center gap-2'>
         <i className="fa-solid fa-coins"/><p>Financly</p>
       </div>
-      {user && <div className='flex items-center gap-2'>
-        <p onClick={logout} className='cursor-pointer opacity-80 hover:opacity-100'>Logout</p>
-      </div>}
+      {user && 
+        <div className='flex items-center gap-2'>
+          
+          <p onClick={logout} className='cursor-pointer opacity-80 hover:opacity-100'>Logout</p>
+        </div>
+      }
     </div>
   )
 }
